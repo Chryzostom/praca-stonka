@@ -37,7 +37,7 @@ def central_point(image):
     cv2.circle(image, point, 2, (0, 255, 0), 5)
     return point
 
-def diff(image, current_pos, destination):
+def controller(current_pos, destination):
     x_now = current_pos[0]
     y_now = current_pos[1]
     x_dest = destination[0]
@@ -45,9 +45,10 @@ def diff(image, current_pos, destination):
     yaw = 270
     fi = cv2.fastAtan2(y_dest - y_now, x_dest - x_now)
     dist = abs(m.sqrt(((x_dest - x_now)**2)+((y_dest - y_now)**2)))
-    test_linear = 2 * dist
-    test_angular = 3 * (fi - yaw)
+    test_linear = 0.01 * dist
+    test_angular = 0.03 * (fi - yaw)
     print(test_linear)
+
 
 def image_processing(image):
     try:
@@ -56,7 +57,7 @@ def image_processing(image):
         obj_img = obj_image(img)
         dest_point = destination_point(img, obj_img)
         cent_point = central_point(img)
-        diff(img, cent_point, dest_point)
+        controller(img, cent_point, dest_point)
         return img
     except CvBridgeError as e:
         print(e)

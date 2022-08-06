@@ -3,14 +3,14 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 
-def publish_msg(value):
-    msg = Twist()
-    if value == None:
-        pass
-    else:
-        msg.data = value
-        print(msg.data)
-        vel_pub.publish(msg)
+# def publish_msg(value):
+#     msg = Twist()
+#     if value == None:
+#         pass
+#     else:
+#         msg.data = value
+#         print(msg.data)
+#         vel_pub.publish(msg)
     
 def callback(msg):
     move = Twist()
