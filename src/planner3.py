@@ -9,6 +9,9 @@ import math as m
 from cv_bridge import CvBridge, CvBridgeError
 import sys
 from geometry_msgs.msg import Twist
+from vision_crop.srv import start, startResponse
+
+flag = 0
 
 class planner:
     def __init__(self):
@@ -43,10 +46,11 @@ class planner:
 
     def destination_point(self, image, objects):
         contours, _ = cv2.findContours(objects, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
         points = []
         for contour in contours:
             (x, y, w, h) = cv2.boundingRect(contour)
-            if cv2.contourArea(contour) < 3000:
+            if cv2.contourArea(contour) < 5000:
                 continue
             else:
                 cv2.rectangle(image, (x, y), (x+w, y+h), (0, 0, 255), 2)
@@ -61,8 +65,8 @@ class planner:
     def central_point(self, image):
         y = image.shape[0]
         x = image.shape[1]
-        point = (int(x/2), int(y/2))
-        cv2.circle(image, point, 2, (0, 255, 0), 5)
+        point = (int(x/2), int(y/2)+300) #obnizenie punktu w dol
+        cv2.circle(image, point, 2, (0, 255, 255), 5)
         return point
         
     def draw_line(self, image, current_pos, destination):
@@ -78,7 +82,7 @@ class planner:
         self.vel_pub.publish(move)
 
     def controller(self, current_pos, destination):
-        if current_pos == None or destination == None:
+        if current_pos == None or destination == None or flag == 0:
             vel_linear = 0.0
             vel_angular = 0.0
         else:
@@ -98,9 +102,17 @@ class planner:
         self.publish(vel_linear, vel_angular)
         print("predkosc liniowa: {}, predkosc katowa: {}".format(vel_linear, vel_angular))
 
+def handle_start(req):
+    global flag
+    res = startResponse()
+    flag = req.start
+    #print(flag)
+    return res
+
 def main(args):
     rospy.init_node('planner')
-    obc = planner()
+    service = rospy.Service('start', start, handle_start)
+    p = planner()
     try:
         rospy.spin()
     except KeyboardInterrupt:
