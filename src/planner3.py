@@ -12,10 +12,14 @@ from geometry_msgs.msg import Twist
 from vision_crop.srv import start, startResponse
 
 flag = 0
+sim = 0
 
 class planner:
     def __init__(self):
-        self.img_sub = rospy.Subscriber("/agribot/front_camera/image_raw", Image, self.imgCallback)
+        if sim == 0:
+            self.img_sub = rospy.Subscriber("/cam/image_raw", Image, self.imgCallback)
+        else:
+            self.img_sub = rospy.Subscriber("/agribot/front_camera/image_raw", Image, self.imgCallback)
         self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
     def imgCallback(self, data):
@@ -27,6 +31,9 @@ class planner:
         try:
             brige = CvBridge()
             img = brige.imgmsg_to_cv2(image, "bgr8")
+            if sim == 0:
+                left_right_image = np.split(img, 2, axis=1)
+                img = left_right_image[0]
             obj_img = self.obj_image(img)
             dest_point = self.destination_point(img, obj_img)
             cent_point = self.central_point(img)

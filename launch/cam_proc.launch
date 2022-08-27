@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="cam" pkg="usb_cam" type="usb_cam_node" required="true"  output="screen" >
+        <param name="video_device" value="/dev/video2" />
+        <param name="image_width" value="2560" />
+        <param name="image_height" value="720" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap"/>
+    </node>  
+    <node name="planner" pkg="vision_crop" type="planner3.py" output="screen"> </node> 
+</launch>
