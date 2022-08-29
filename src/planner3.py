@@ -12,7 +12,7 @@ from geometry_msgs.msg import Twist
 from vision_crop.srv import start, startResponse
 
 flag = 0
-sim = 0
+sim = 1 #jesli 0 to kamera, jesli 1 to symulacja 
 
 class planner:
     def __init__(self):
@@ -34,7 +34,8 @@ class planner:
             if sim == 0:
                 left_right_image = np.split(img, 2, axis=1)
                 img = left_right_image[0]
-            obj_img = self.obj_image(img)
+            #obj_img = self.obj_image_hsv(img) #dla hsv
+            obj_img = self.obj_image_canny(img) #dla canny
             dest_point = self.destination_point(img, obj_img)
             cent_point = self.central_point(img)
             self.controller(cent_point, dest_point)
@@ -43,7 +44,14 @@ class planner:
         except CvBridgeError as e:
             print(e)
 
-    def obj_image(self, image):
+    def obj_image_hsv(self, image):
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        l_b = np.array([0, 0, 100])
+        u_b = np.array([70, 255, 255])
+        mask = cv2.inRange(hsv, l_b, u_b)
+        return mask
+
+    def obj_image_canny(self, image):
         kernel = np.ones((4, 4), np.uint8)
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur_image = cv2.GaussianBlur(gray_image, (7, 7), 0)
@@ -53,8 +61,9 @@ class planner:
 
     def destination_point(self, image, objects):
         contours, _ = cv2.findContours(objects, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
+        #cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
         points = []
+        xi = image.shape[1]
         for contour in contours:
             (x, y, w, h) = cv2.boundingRect(contour)
             if cv2.contourArea(contour) < 5000:
@@ -65,9 +74,16 @@ class planner:
         if len(points) == 0:
             pass
         else:
-            last_point = points[-1]
+            for point in reversed(points):
+                if (point[0] < xi/2+150) and (point[0] > xi/2-150): #threshold na linie
+                    last_point = point
+                    break
+                else:
+                    last_point = points[-1]
+                    continue
             cv2.circle(image, last_point, 2, (0, 0, 255), 5)
             return last_point
+
 
     def central_point(self, image):
         y = image.shape[0]
@@ -113,7 +129,6 @@ def handle_start(req):
     global flag
     res = startResponse()
     flag = req.start
-    #print(flag)
     return res
 
 def main(args):
