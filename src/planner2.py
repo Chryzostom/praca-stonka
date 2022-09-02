@@ -11,7 +11,7 @@ import sys
 from geometry_msgs.msg import Twist
 from vision_crop.srv import start, startResponse
 
-flag = 0
+flag = 0 #flaga dotyczaca startu programu
 sim = 1 #jesli 0 to kamera, jesli 1 to symulacja 
 
 class planner:
@@ -34,12 +34,12 @@ class planner:
             if sim == 0:
                 left_right_image = np.split(img, 2, axis=1)
                 img = left_right_image[0]
-            #obj_img = self.obj_image_hsv(img) #dla hsv
-            obj_img = self.obj_image_canny(img) #dla canny
+            obj_img = self.obj_image_hsv(img) #dla hsv
+            #obj_img = self.obj_image_canny(img) #dla canny
             dest_point = self.destination_point(img, obj_img)
-            cent_point = self.central_point(img)
-            self.controller(cent_point, dest_point)
-            self.draw_line(img, cent_point, dest_point)
+            robot_point = self.robot_point(img)
+            self.controller(robot_point, dest_point)
+            self.draw_line(img, robot_point, dest_point)
             return img
         except CvBridgeError as e:
             print(e)
@@ -48,8 +48,8 @@ class planner:
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         l_b = np.array([0, 0, 100])
         u_b = np.array([70, 255, 255])
-        mask = cv2.inRange(hsv, l_b, u_b)
-        return mask
+        obj_img = cv2.inRange(hsv, l_b, u_b)
+        return obj_img
 
     def obj_image_canny(self, image):
         kernel = np.ones((4, 4), np.uint8)
@@ -61,7 +61,6 @@ class planner:
 
     def destination_point(self, image, objects):
         contours, _ = cv2.findContours(objects, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        #cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
         points = []
         xi = image.shape[1]
         for contour in contours:
@@ -84,8 +83,7 @@ class planner:
             cv2.circle(image, last_point, 2, (0, 0, 255), 5)
             return last_point
 
-
-    def central_point(self, image):
+    def robot_point(self, image):
         y = image.shape[0]
         x = image.shape[1]
         point = (int(x/2), int(y/2)+300) #obnizenie punktu w dol
@@ -115,7 +113,8 @@ class planner:
             y_dest = destination[1]
             yaw = 270
             fi = cv2.fastAtan2(y_dest - y_now, x_dest - x_now)
-            dist = abs(m.sqrt(((x_dest - x_now)**2)+((y_dest - y_now)**2)))
+            gamma = fi - yaw
+            dist = m.sqrt(((x_dest - x_now)**2)+((y_dest - y_now)**2))
             if dist > 50:
                 vel_linear = 0.001 * dist
                 vel_angular = (-0.03) * (fi - yaw)
