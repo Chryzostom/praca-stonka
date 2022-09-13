@@ -8,5 +8,9 @@
         <param name="camera_frame_id" value="usb_cam" />
         <param name="io_method" value="mmap"/>
     </node>  
-    <node name="planner" pkg="vision_crop" type="planner3.py" output="screen"> </node> 
+    <node name="planner" pkg="vision_crop" type="planner2.py" output="screen"> </node>
+    <node name="arduino" pkg="rosserial_python" type="serial_node.py" output="screen"> 
+        <param name="port" value="/dev/ttyUSB0"/>
+        <param name="baud" value="57600"/>
+    </node> 
 </launch>

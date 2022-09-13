@@ -37,7 +37,7 @@ class planner:
                 np.pi/180, 
                 60, 
                 np. array([]), 
-                minLineLength=150,  
+                minLineLength=250,  
                 maxLineGap=700
                 )
             self.display_lines(img, lines)

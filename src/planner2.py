@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from turtle import delay
 import numpy as np
 import cv2
 import rospy
@@ -10,9 +11,10 @@ from cv_bridge import CvBridge, CvBridgeError
 import sys
 from geometry_msgs.msg import Twist
 from vision_crop.srv import start, startResponse
+import time
 
 flag = 0 #flaga dotyczaca startu programu
-sim = 1 #jesli 0 to kamera, jesli 1 to symulacja 
+sim = 0 #jesli 0 to kamera, jesli 1 to symulacja 
 
 class planner:
     def __init__(self):
@@ -45,10 +47,14 @@ class planner:
             print(e)
 
     def obj_image_hsv(self, image):
+        kernel = np.ones((4, 4), np.uint8)
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        l_b = np.array([0, 0, 100])
-        u_b = np.array([70, 255, 255])
+        hsv[..., 1] = hsv[..., 1]*2.4
+        hsv[..., 2] = hsv[..., 2]*0.6
+        l_b = np.array([12, 21, 64])
+        u_b = np.array([84, 255, 255])
         obj_img = cv2.inRange(hsv, l_b, u_b)
+        dilated_img = cv2.dilate(obj_img, kernel, iterations=3)
         return obj_img
 
     def obj_image_canny(self, image):
@@ -65,7 +71,7 @@ class planner:
         xi = image.shape[1]
         for contour in contours:
             (x, y, w, h) = cv2.boundingRect(contour)
-            if cv2.contourArea(contour) < 5000:
+            if (cv2.contourArea(contour) < 5000):# or (cv2.contourArea(contour) > 100000):
                 continue
             else:
                 cv2.rectangle(image, (x, y), (x+w, y+h), (0, 0, 255), 2)
@@ -117,12 +123,13 @@ class planner:
             dist = m.sqrt(((x_dest - x_now)**2)+((y_dest - y_now)**2))
             if dist > 50:
                 vel_linear = 0.001 * dist
-                vel_angular = (-0.03) * (fi - yaw)
+                vel_angular = (-0.01) * (fi - yaw)
             else:
                 vel_linear = 0.0
                 vel_angular = 0.0
         self.publish(vel_linear, vel_angular)
         print("predkosc liniowa: {}, predkosc katowa: {}".format(vel_linear, vel_angular))
+        #time.sleep(0.1)
 
 def handle_start(req):
     global flag
@@ -132,6 +139,7 @@ def handle_start(req):
 
 def main(args):
     rospy.init_node('planner')
+    rate = rospy.Rate(10)
     service = rospy.Service('start', start, handle_start)
     p = planner()
     try:
@@ -139,6 +147,7 @@ def main(args):
     except KeyboardInterrupt:
         print("Shutting down...")
         cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main(sys.argv)
